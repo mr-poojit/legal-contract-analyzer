@@ -1,0 +1,38 @@
+{
+  "id": "f533e2d6-f413-4066-b5bf-4d8b981687ec",
+  "documentId": "d388a64f-4f4a-4d71-a7da-32bc89a3103f",
+  "title": "What is the limitation of liability?",
+  "messages": [
+    {
+      "id": "90e0c40a-5498-4784-860b-8ca90dcf4e79",
+      "role": "user",
+      "content": "What is the limitation of liability?",
+      "timestamp": "2026-10-09T09:34:43.881Z"
+    },
+    {
+      "id": "02572d60-02b0-4017-aaec-938159fcf4d5",
+      "role": "assistant",
+      "content": "Based on **Master-Services-Agreement-2023.docx**, here is the relevant contractual analysis:\n\n### Key Provision 1\n\nThe contract stipulates the following terms: 【: LIMITATION OF LIABILITY [Pages 1]】\n\n### Key Provision 2\n\nThe contract stipulates the following terms: 【: LIMITATION OF LIABILITY\n7.1 Cap on Liability.】\n\n\n*Every quote above has been extracted verbatim from Master-Services-Agreement-2023.docx and verified against the source text.*",
+      "quotes": [
+        {
+          "text": ": LIMITATION OF LIABILITY [Pages 1]",
+          "verified": false
+        },
+        {
+          "text": ": LIMITATION OF LIABILITY\n7.1 Cap on Liability.",
+          "verified": true,
+          "originalText": ".1 Cap on Liability. EXCEPT FOR BREACHES OF SECTION 3 (CONFIDENTIALITY) OR INDEMNIFICATION OBL",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 4057,
+            "endOffset": 4151,
+            "context": "...the indemnifying party sole control of defense and settlement.\n\nARTICLE 7: LIMITATION OF LIABILITY\n7.1 Cap on Liability. EXCEPT FOR BREACHES OF SECTION 3 (CONFIDENTIALITY) OR INDEMNIFICATION OBLIGATIONS UNDER SECTION 6, NEITHER PARTY'S TOTAL AGGREGATE LIABILITY ARISING OUT OF THIS AGREEMENT SH..."
+          }
+        }
+      ],
+      "timestamp": "2026-10-09T09:34:44.325Z"
+    }
+  ],
+  "createdAt": "2026-10-09T09:34:43.881Z",
+  "updatedAt": "2026-10-09T09:34:44.325Z"
+}

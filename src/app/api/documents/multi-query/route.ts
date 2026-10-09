@@ -12,7 +12,13 @@ export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
-    const { question, documentIds } = await request.json();
+    const body = await request.json();
+    const { question, documentIds, apiKey } = body as {
+      question: string;
+      documentIds: string[];
+      apiKey?: string;
+    };
+    const activeApiKey = apiKey || request.headers.get('x-api-key') || undefined;
 
     if (!question || !documentIds || !Array.isArray(documentIds) || documentIds.length < 2) {
       return NextResponse.json(
@@ -88,7 +94,7 @@ export async function POST(request: NextRequest) {
         let fullResponse = '';
 
         try {
-          for await (const chunk of streamChatCompletion(aiMessages, { maxTokens: 4096 })) {
+          for await (const chunk of streamChatCompletion(aiMessages, { maxTokens: 4096, apiKey: activeApiKey })) {
             fullResponse += chunk;
             const data = JSON.stringify({ type: 'chunk', content: chunk });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));

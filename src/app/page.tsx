@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Upload, FileText, Trash2, MessageSquare, Search, GitCompare,
-  Plus, ChevronRight, Clock, FileType, AlertCircle, Loader2, X, BookOpen, Sparkles
+  Plus, ChevronRight, Clock, FileType, AlertCircle, Loader2, X, BookOpen, Sparkles, Key
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { ApiKeyModal } from './components/ApiKeyModal';
 
 interface DocumentMeta {
   id: string;
@@ -37,6 +38,7 @@ export default function HomePage() {
   const [isMultiQuerying, setIsMultiQuerying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -248,6 +250,15 @@ export default function HomePage() {
               </button>
             </>
           )}
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowApiKeyModal(true)}
+            title="Configure AI API Key (OpenAI, OpenRouter, Gemini)"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Key size={15} />
+            <span>API Key</span>
+          </button>
         </nav>
       </header>
 
@@ -600,6 +611,8 @@ export default function HomePage() {
           )}
         </section>
       </main>
+
+      <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
 
       <style jsx>{`
         .spinning {

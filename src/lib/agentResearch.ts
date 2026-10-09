@@ -270,7 +270,8 @@ export async function runAgentResearch(
   question: string,
   fullText: string,
   pages: DocumentPage[],
-  onStep: (step: AgentStep) => void
+  onStep: (step: AgentStep) => void,
+  apiKey?: string
 ): Promise<{ answer: string; steps: AgentStep[] }> {
   const chunks = chunkDocument(fullText, pages);
   const steps: AgentStep[] = [];
@@ -307,7 +308,7 @@ IMPORTANT RULES:
     onStep(step);
 
     try {
-      const response = await chatCompletionWithTools(messages, AGENT_TOOLS);
+      const response = await chatCompletionWithTools(messages, AGENT_TOOLS, { apiKey });
 
       if (response.toolCalls.length === 0) {
         // Model is done researching, has final answer

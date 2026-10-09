@@ -27,11 +27,13 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { message, chatId, useAgent } = body as {
+    const { message, chatId, useAgent, apiKey } = body as {
       message: string;
       chatId?: string;
       useAgent?: boolean;
+      apiKey?: string;
     };
+    const activeApiKey = apiKey || request.headers.get('x-api-key') || undefined;
 
     if (!message) {
       return NextResponse.json({ error: 'No message provided' }, { status: 400 });
@@ -86,7 +88,7 @@ export async function POST(
 
     // Handle agentic research mode
     if (useAgent) {
-      return handleAgentChat(docId, session, message, fullText, pages, meta.name);
+      return handleAgentChat(docId, session, message, fullText, pages, meta.name, activeApiKey);
     }
 
     // Prepare context - chunk large documents
@@ -132,7 +134,7 @@ export async function POST(
         let fullResponse = '';
 
         try {
-          for await (const chunk of streamChatCompletion(aiMessages)) {
+          for await (const chunk of streamChatCompletion(aiMessages, { apiKey: activeApiKey })) {
             fullResponse += chunk;
             // Send chunk as SSE
             const data = JSON.stringify({ type: 'chunk', content: chunk });
@@ -202,7 +204,8 @@ async function handleAgentChat(
   message: string,
   fullText: string,
   pages: import('@/lib/types').DocumentPage[],
-  docName: string
+  docName: string,
+  apiKey?: string
 ) {
   const { runAgentResearch } = await import('@/lib/agentResearch');
   const encoder = new TextEncoder();
@@ -217,7 +220,8 @@ async function handleAgentChat(
           (step) => {
             const data = JSON.stringify({ type: 'agent_step', step });
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-          }
+          },
+          apiKey
         );
 
         // Stream the answer

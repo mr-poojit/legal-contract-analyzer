@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Send, Square, MessageSquare, Plus, FileText, Trash2,
   Bot, User, ChevronRight, AlertTriangle, Eye, Zap, Search,
-  CheckCircle2, XCircle, ChevronDown, Clock, BookOpen, Loader2
+  CheckCircle2, XCircle, ChevronDown, Clock, BookOpen, Loader2, Key
 } from 'lucide-react';
+import { ApiKeyModal } from '@/app/components/ApiKeyModal';
 
 interface DocumentMeta {
   id: string;
@@ -82,6 +83,7 @@ function DocumentPageContent() {
   const [chatSessions, setChatSessions] = useState<ChatSessionSummary[]>([]);
   const [useAgentMode, setUseAgentMode] = useState(false);
   const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Document viewer state
@@ -180,13 +182,18 @@ function DocumentPageContent() {
     abortControllerRef.current = controller;
 
     try {
+      const storedKey = typeof window !== 'undefined' ? localStorage.getItem('clauseguard_api_key') : null;
       const res = await fetch(`/api/documents/${docId}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(storedKey ? { 'x-api-key': storedKey } : {}),
+        },
         body: JSON.stringify({
           message: question,
           chatId: chatId,
           useAgent: useAgentMode,
+          apiKey: storedKey || undefined,
         }),
         signal: controller.signal,
       });
@@ -243,7 +250,7 @@ function DocumentPageContent() {
                     const updated = [...prev];
                     const last = updated[updated.length - 1];
                     if (last && last.role === 'assistant') {
-                      last.content = `Error: ${data.error}`;
+                      last.content = `⚠️ ${data.error}\n\n*Click "API Key" in the top bar to set up your AI key, or continue using the built-in contract analyzer.*`;
                       last.isStreaming = false;
                     }
                     return [...updated];
@@ -431,6 +438,15 @@ function DocumentPageContent() {
             <Eye size={14} />
             {showViewer ? 'Hide Document' : 'View Document'}
           </button>
+          <button
+            className="btn btn-sm btn-ghost"
+            onClick={() => setShowApiKeyModal(true)}
+            title="Configure AI API Key (OpenAI, OpenRouter, Gemini)"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Key size={14} />
+            <span>API Key</span>
+          </button>
         </div>
       </header>
 
@@ -541,6 +557,16 @@ function DocumentPageContent() {
                 <div className="empty-state-title">Start a conversation</div>
                 <div className="empty-state-description">
                   Ask any question about "{meta.name}". Answers will be backed by verified quotes from the document.
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowApiKeyModal(true)}
+                    style={{ fontSize: '12px' }}
+                  >
+                    <Key size={13} />
+                    Configure API Key
+                  </button>
                 </div>
               </div>
             )}
@@ -692,6 +718,8 @@ function DocumentPageContent() {
           </div>
         )}
       </div>
+
+      <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
     </>
   );
 }

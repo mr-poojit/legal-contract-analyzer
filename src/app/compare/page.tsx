@@ -18,8 +18,10 @@ import {
   RefreshCw,
   Columns,
   AlignLeft,
+  Key,
 } from 'lucide-react';
 import { diffWords } from 'diff';
+import { ApiKeyModal } from '@/app/components/ApiKeyModal';
 
 interface DocumentMeta {
   id: string;
@@ -91,6 +93,7 @@ function CompareContent() {
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   // Filters
   const [typeFilter, setTypeFilter] = useState<'all' | 'modified' | 'added' | 'removed'>('all');
@@ -286,6 +289,16 @@ function CompareContent() {
             >
               <RefreshCw size={14} className={isLoading ? 'spinning' : ''} />
               <span>Compare</span>
+            </button>
+
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => setShowApiKeyModal(true)}
+              title="Configure AI API Key (OpenAI, OpenRouter, Gemini)"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Key size={14} />
+              <span>API Key</span>
             </button>
           </div>
         </div>
@@ -585,6 +598,8 @@ function CompareContent() {
           </div>
         </div>
       )}
+
+      <ApiKeyModal isOpen={showApiKeyModal} onClose={() => setShowApiKeyModal(false)} />
 
       <style jsx>{`
         .spinning {
