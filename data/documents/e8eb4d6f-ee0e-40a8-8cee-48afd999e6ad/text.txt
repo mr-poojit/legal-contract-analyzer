@@ -1,0 +1,41 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement ("NDA") is made effective as of February 10, 2024, between Horizon BioVentures Inc. ("Horizon") and Cipher Health Analytics LLC ("Cipher").
+
+1. PURPOSE
+The parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines ("Authorized Purpose").
+
+2. DEFINITION OF CONFIDENTIAL INFORMATION
+"Confidential Information" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and circumstances of disclosure. Confidential Information includes genomic algorithms, clinical trial data, software architectures, patent filings, financial models, and customer lists.
+
+3. OBLIGATIONS OF RECEIVING PARTY
+The receiving party agrees:
+(a) To hold the disclosing party's Confidential Information in strict confidence;
+(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;
+(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;
+(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.
+
+4. EXCLUSIONS FROM CONFIDENTIALITY
+Confidential Information does not include information that:
+(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;
+(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;
+(c) Is received from a third party without breach of any confidentiality obligation;
+(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.
+
+5. COMPELLED DISCLOSURE
+If the receiving party is required by law, subpoena, or regulatory authority to disclose Confidential Information, it shall give prompt written notice to the disclosing party to permit the disclosing party to seek a protective order or contest the disclosure.
+
+6. RETURN OR DESTRUCTION OF MATERIALS
+Upon written request of the disclosing party or upon termination of discussions, the receiving party shall immediately return or securely destroy all copies, notes, summaries, and extracts of Confidential Information, and certify in writing that all such materials have been destroyed within fourteen (14) days.
+
+7. NO LICENSE OR OBLIGATION
+Nothing in this Agreement grants any license, title, patent, copyright, or trademark rights in any Confidential Information. Disclosing party makes no warranties regarding the accuracy or completeness of any information provided.
+
+8. TERM AND SURVIVAL
+This Agreement shall govern disclosures made for a period of two (2) years from the Effective Date. The confidentiality obligations under this Agreement shall survive for a period of five (5) years following the date of disclosure; provided that for trade secrets, obligations shall survive perpetually.
+
+9. REMEDIES FOR BREACH
+The parties acknowledge that monetary damages may be inadequate for breach of confidentiality, and agree that the disclosing party shall be entitled to seek injunctive relief and specific performance without posting bond.
+
+10. GOVERNING LAW AND JURISDICTION
+This Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York.
