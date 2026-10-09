@@ -65,6 +65,16 @@ interface ChatSessionSummary {
   updatedAt: string;
 }
 
+function renderNormalText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1');
+}
+
 function DocumentPageContent() {
   const params = useParams();
   const router = useRouter();
@@ -600,7 +610,7 @@ function DocumentPageContent() {
                     </details>
                   )}
                   <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {msg.content}
+                    {renderNormalText(msg.content)}
                     {msg.isStreaming && <span className="streaming-cursor" />}
                   </div>
 

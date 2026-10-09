@@ -23,6 +23,16 @@ interface DocumentMeta {
   textLength: number;
 }
 
+function renderNormalText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1');
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [documents, setDocuments] = useState<DocumentMeta[]>([]);
@@ -393,7 +403,7 @@ export default function HomePage() {
                     borderRadius: 'var(--radius-lg)',
                   }}>
                     <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'var(--color-text-secondary)' }}>
-                      {multiAnswer}
+                      {renderNormalText(multiAnswer)}
                       {isMultiQuerying && <span className="streaming-cursor" />}
                     </div>
 

@@ -179,8 +179,16 @@ const CONCEPT_SYNONYMS: Record<string, string[]> = {
   governing: ['governing law', 'jurisdiction', 'dispute', 'arbitration', 'court', 'venue'],
   indemnify: ['indemnif', 'hold harmless', 'infring', 'defend'],
   warranty: ['warrant', 'guarantee', 'disclaimer', 'merchantability', 'fitness'],
-  scope: ['scope', 'service', 'work', 'engagement', 'project', 'objective', 'goal', 'purpose'],
+  scope: ['scope', 'service', 'engagement', 'objective', 'goal', 'purpose'],
   party: ['party', 'parties', 'client', 'vendor', 'contractor', 'provider', 'company', 'recipient'],
+  // Resume and candidate entity categories
+  project: ['project', 'projects', 'built', 'developed', 'system', 'app', 'application', 'portfolio', 'prototype', 'agent', 'assistant'],
+  experience: ['experience', 'work experience', 'employment', 'history', 'role', 'developer', 'engineer', 'duration', 'worked', 'years', 'months', 'company', 'organization'],
+  certificate: ['certificate', 'certificates', 'certification', 'certifications', 'credential', 'credentials', 'certified', 'license', 'course'],
+  name: ['name', 'candidate', 'applicant', 'who', 'person', 'individual', 'profile', 'author', 'developer name', 'full name'],
+  education: ['education', 'degree', 'college', 'university', 'institute', 'graduation', 'gpa', 'cgpa', 'school', 'academic', 'studies'],
+  summary: ['summary', 'profile summary', 'about', 'bio', 'overview', 'introduction', 'background'],
+  contact: ['contact', 'email', 'phone', 'mobile', 'linkedin', 'github', 'portfolio', 'reach'],
 };
 
 /**
@@ -195,7 +203,8 @@ function extractQueryTerms(question: string): string[] {
     'would', 'should', 'may', 'might', 'about', 'there', 'their', 'they',
     'them', 'than', 'then', 'but', 'not', 'or', 'if', 'its', 'you', 'your',
     'used', 'using', 'use', 'tell', 'me', 'give', 'get', 'list', 'show',
-    'describe', 'explain', 'mention', 'mentioned', 'find', 'any',
+    'describe', 'explain', 'mention', 'mentioned', 'find', 'any', 'he', 'she',
+    'his', 'her', 'much', 'many',
   ]);
 
   const qLower = question.toLowerCase();
@@ -221,16 +230,28 @@ function extractQueryTerms(question: string): string[] {
 
 /**
  * Split text into meaningful paragraphs/blocks for scoring.
- * Intelligently recognizes section headings, bullet items, and list numbers.
+ * Intelligently merges standalone section headers with their contents.
  */
 function splitIntoParagraphs(text: string): { text: string; index: number }[] {
-  // Split by double newlines, uppercase section headers, numbered items, bullet points, or page separators
-  const splitRegex = /\n\s*\n|\n(?=[A-Z][A-Z\s&/]{2,}(?:\n|:|\s{2,}))|\n(?=\d+[\.\)]\s)|\n(?=[●•]\s)|(?=---)|\n(?=--\s*\d+\s*of\s*\d+\s*--)/;
-  const rawBlocks = text.split(splitRegex).map(s => s.trim()).filter(s => s.length > 8);
+  // Split on double newlines, known major section headers, numbered items, or page breaks
+  const splitRegex = /\n\s*\n|\n(?=(?:WORK\s+EXPERIENCE|PROJECTS|TECHNICAL\s+SKILLS|EDUCATION|CERTIFICATIONS|CERTIFICATES|PROFILE\s+SUMMARY|EXPERIENCE|ARTICLE\s+\d+|SECTION\s+\d+|CLAUSE\s+\d+|TASKS:|BONUS:|EVALUATION\s+CRITERIA:)\b)|\n(?=\d+[\.\)]\s)|(?=---)|\n(?=--\s*\d+\s*of\s*\d+\s*--)/i;
+  const rawBlocks = text.split(splitRegex).map(s => s.trim()).filter(s => s.length > 4);
+
+  // Merge any standalone heading blocks with the subsequent block so a heading is never isolated from its content
+  const mergedBlocks: string[] = [];
+  for (let i = 0; i < rawBlocks.length; i++) {
+    const cur = rawBlocks[i];
+    const isHeadingOnly = cur.length <= 45 && !cur.includes('.') && !cur.includes(';') && !cur.includes(':');
+    if (isHeadingOnly && i < rawBlocks.length - 1) {
+      rawBlocks[i + 1] = cur + '\n' + rawBlocks[i + 1];
+      continue;
+    }
+    mergedBlocks.push(cur);
+  }
 
   const result: { text: string; index: number }[] = [];
   let offset = 0;
-  for (const block of rawBlocks) {
+  for (const block of mergedBlocks) {
     const idx = text.indexOf(block, offset);
     result.push({ text: block, index: idx >= 0 ? idx : offset });
     offset = (idx >= 0 ? idx : offset) + block.length;
@@ -258,7 +279,7 @@ function scoreBlock(blockText: string, queryTerms: string[], questionLower: stri
 
   // Exact phrase match from question
   const cleanQ = questionLower.replace(/[?.,!;:"'()]/g, '').trim();
-  if (cleanQ.length > 5 && blockLower.includes(cleanQ)) {
+  if (cleanQ.length > 4 && blockLower.includes(cleanQ)) {
     score += 25;
   }
 
@@ -271,15 +292,23 @@ function scoreBlock(blockText: string, queryTerms: string[], questionLower: stri
     }
   }
 
-  // Heading relevance boost - ONLY if the first line is an actual section title (short, not a bullet item)
+  // Heading relevance boost - ONLY if the first line is an actual section title
   const firstLine = blockText.split('\n')[0].trim();
   const isHeading = firstLine.length <= 45 && !/^[●•\-\*]/.test(firstLine);
   if (isHeading) {
     const headingLower = firstLine.toLowerCase();
     for (const term of queryTerms) {
       if (term.length >= 3 && headingLower.includes(term)) {
-        score += 40; // Decisive boost for genuine section headings (e.g. "TECHNICAL SKILLS", "TASKS:")
+        score += 40; // Decisive boost for genuine section headings (e.g. "TECHNICAL SKILLS", "PROJECTS", "WORK EXPERIENCE")
       }
+    }
+  }
+
+  // Candidate Name boost - matches email or phone in the contact header block when asking about the candidate or name
+  const isNameQuery = queryTerms.some(t => ['name', 'candidate', 'applicant', 'who', 'full name'].includes(t));
+  if (isNameQuery) {
+    if (blockText.includes('@') || /[\w.-]+@[\w.-]+/.test(blockText)) {
+      score += 80;
     }
   }
 
@@ -287,26 +316,26 @@ function scoreBlock(blockText: string, queryTerms: string[], questionLower: stri
 }
 
 /**
- * Formats a clean, human-friendly summary from a text block.
+ * Formats a clean, human-friendly summary from a text block as normal plain text.
  */
 function formatBlockSummary(blockText: string): string {
   const lines = blockText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const formattedLines: string[] = [];
 
   for (const line of lines) {
-    // If line has a colon (like "Languages : Python, C..."), make the key bold
-    if (line.includes(':') && !line.startsWith('http')) {
+    // If line has a colon (like "Languages : Python, C..."), format cleanly with bullet
+    if (line.includes(':') && !line.startsWith('http') && !line.startsWith('mailto')) {
       const colonIdx = line.indexOf(':');
       const key = line.slice(0, colonIdx).trim().replace(/^[●•\-\*]\s*/, '');
       const val = line.slice(colonIdx + 1).trim();
       if (key.length > 0 && val.length > 0) {
-        formattedLines.push(`- **${key}:** ${val}`);
+        formattedLines.push(`• ${key}: ${val}`);
         continue;
       }
     }
     // If it's a bullet item
     if (/^[●•\-\*]\s*/.test(line)) {
-      formattedLines.push(`- ${line.replace(/^[●•\-\*]\s*/, '')}`);
+      formattedLines.push(`• ${line.replace(/^[●•\-\*]\s*/, '')}`);
       continue;
     }
     // Numbered item
@@ -314,12 +343,8 @@ function formatBlockSummary(blockText: string): string {
       formattedLines.push(line);
       continue;
     }
-    // Regular heading or line
-    if (line.length <= 40 && /^[A-Z\s&/]{3,}$/.test(line)) {
-      formattedLines.push(`### ${line}`);
-    } else {
-      formattedLines.push(line);
-    }
+    // Regular line
+    formattedLines.push(line);
   }
 
   return formattedLines.join('\n');
@@ -331,7 +356,7 @@ function formatBlockSummary(blockText: string): string {
  */
 function generateLocalAnswer(question: string, context: string, docName: string): string {
   if (!context || context.trim().length === 0) {
-    return `I could not find information about this in **${docName}** because no document context was provided.`;
+    return `I could not find information about this in ${docName} because no document context was provided.`;
   }
 
   const questionLower = question.toLowerCase();
@@ -352,18 +377,14 @@ function generateLocalAnswer(question: string, context: string, docName: string)
   scoredBlocks.sort((a, b) => b.score - a.score);
 
   if (scoredBlocks.length === 0) {
-    const allText = context.substring(0, 1500);
-    return `Based on **${docName}**, I could not find information directly addressing your question about "${question}".\n\n> ℹ️ *Tip: You can rephrase your question or add an OpenAI / OpenRouter API key in the top navigation settings for full generative AI analysis.*`;
+    return `Based on ${docName}, I could not find information directly addressing your question about "${question}".\n\nTip: You can rephrase your question or add an API key in the top navigation settings for full generative AI analysis.`;
   }
 
   const maxScore = scoredBlocks[0].score;
-  // Keep the most relevant blocks (at least 60% of max score if maxScore is high, top 2 max)
-  const scoreThreshold = maxScore >= 20 ? maxScore * 0.6 : Math.max(6, maxScore * 0.4);
+  const scoreThreshold = maxScore >= 25 ? maxScore * 0.45 : Math.max(5, maxScore * 0.35);
   const topBlocks = scoredBlocks
     .filter(b => b.score >= scoreThreshold)
-    .slice(0, 2);
-
-  // Keep in score order (highest relevance first) so the primary match is answered first
+    .slice(0, 4);
 
   const cleanQuotes: string[] = [];
   for (const block of topBlocks) {
@@ -385,22 +406,23 @@ function generateLocalAnswer(question: string, context: string, docName: string)
   }
 
   if (cleanQuotes.length === 0) {
-    return `Based on **${docName}**, I could not find information directly addressing your question about "${question}".`;
+    return `Based on ${docName}, I could not find information directly addressing your question about "${question}".`;
   }
 
-  // Construct answer with synthesized answer + exact verbatim quote
-  let answerText = `Based on **${docName}**, here is the information addressing your question:\n\n`;
+  // Construct answer in clean normal text with exact verbatim quotes
+  let answerText = `Based on ${docName}, here is the information addressing your question:\n\n`;
 
-  // Provide a structured summary of the primary section
-  const primaryBlock = cleanQuotes[0];
-  answerText += formatBlockSummary(primaryBlock) + '\n\n';
+  // Present the summarized items
+  for (const quote of cleanQuotes) {
+    answerText += formatBlockSummary(quote) + '\n\n';
+  }
 
-  answerText += `**Exact Supporting Quote:**\n\n`;
+  answerText += `Exact Supporting Quote:\n\n`;
   for (const quote of cleanQuotes) {
     answerText += `【${quote}】\n\n`;
   }
 
-  answerText += `---\n\n*Every quote above is extracted verbatim from **${docName}**. Click the quote to jump directly to this passage in the document viewer.*`;
+  answerText += `---\n\nEvery quote above is extracted verbatim from ${docName}. Click the quote to jump directly to this passage in the document viewer.`;
 
   return answerText;
 }
@@ -416,10 +438,10 @@ function generateMultiDocAnswer(
   const questionLower = question.toLowerCase();
   const queryTerms = extractQueryTerms(question);
 
-  let answerText = `Based on the comparative analysis across the **${docSections.length} selected documents**, here are the findings regarding **"${question}"**:\n\n`;
+  let answerText = `Based on the comparative analysis across the ${docSections.length} selected documents, here are the findings regarding "${question}":\n\n`;
 
   for (const doc of docSections) {
-    answerText += `### 📄 ${doc.docName}\n\n`;
+    answerText += `📄 ${doc.docName}\n\n`;
 
     const paragraphs = splitIntoParagraphs(doc.text);
     const scoredBlocks: { text: string; score: number }[] = [];
@@ -455,7 +477,7 @@ function generateMultiDocAnswer(
 
     answerText += formatBlockSummary(cleanPrimary) + '\n\n';
 
-    answerText += `**Supporting Quote:**\n\n`;
+    answerText += `Supporting Quote:\n\n`;
     for (const b of topBlocks) {
       let cleanQuote = b.text
         .replace(/^---.*$/gm, '')
@@ -473,7 +495,7 @@ function generateMultiDocAnswer(
     answerText += `---\n\n`;
   }
 
-  answerText += `*All quotes above are extracted verbatim from their respective contracts and verified against the source text.*`;
+  answerText += `All quotes above are extracted verbatim from their respective contracts and verified against the source text.`;
 
   return answerText;
 }
