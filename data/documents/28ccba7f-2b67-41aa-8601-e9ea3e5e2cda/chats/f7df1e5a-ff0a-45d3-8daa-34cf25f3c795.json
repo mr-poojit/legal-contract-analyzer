@@ -1,0 +1,45 @@
+{
+  "id": "f7df1e5a-ff0a-45d3-8daa-34cf25f3c795",
+  "documentId": "28ccba7f-2b67-41aa-8601-e9ea3e5e2cda",
+  "title": "What is the term of this agreement?",
+  "messages": [
+    {
+      "id": "02a94f16-b845-49e5-a8b3-8281f609662b",
+      "role": "user",
+      "content": "What is the term of this agreement?",
+      "timestamp": "2026-10-09T09:53:16.073Z"
+    },
+    {
+      "id": "f3986f79-00c9-4c4f-ba74-56fac069c57b",
+      "role": "assistant",
+      "content": "Based on **Master-Services-Agreement-2024-Revised.docx**, here is the relevant contractual analysis:\n\n### Key Provision 1\n\nThe contract stipulates the following terms: 【Each party shall use at least the same degree of care it uses to protect its own confidential information, but in no event less than reasonable care.】\n\n### Key Provision 2\n\nThe contract stipulates the following terms: 【During the term of this Agreement and for one (1) year thereafter, neither party shall directly solicit for employment any employee of the other party involved in the performance of Services.】\n\n\n*Every quote above has been extracted verbatim from Master-Services-Agreement-2024-Revised.docx and verified against the source text.*",
+      "quotes": [
+        {
+          "text": "Each party shall use at least the same degree of care it uses to protect its own confidential information, but in no event less than reasonable care.",
+          "verified": true,
+          "originalText": "st the same degree of care it uses to protect its own confidential information, but in no event less than reasonable care.\n3.3 Exclusions. Confidential Information shall not include information that: (a) is or becomes publicly available through no breach of this Agreement; (b) was already known to",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 1822,
+            "endOffset": 2120,
+            "context": "...inancial information disclosed by the other party.\n3.2 Standard of Care. Each party shall use at least the same degree of care it uses to protect its own confidential information, but in no event less than reasonable care.\n3.3 Exclusions. Confidential Information shall not include information that: (a) is or becomes publicly available through no breach of this Agreement; (b) was already known to the receiving party; or (c) is independently developed without reference to the disclosing party's ..."
+          }
+        },
+        {
+          "text": "During the term of this Agreement and for one (1) year thereafter, neither party shall directly solicit for employment any employee of the other party involved in the performance of Services.",
+          "verified": true,
+          "originalText": "is Agreement and for one (1) year thereafter, neither party shall directly solicit for employment any employee of the other party involved in the performance of Services.\n8.2 Independent Contractors. The parties explicitly agree that previous non-competition restrictions have been removed to comply with California Business and Professions Code Section 16600.\n\nARTICLE 9: TERM AND ",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 5604,
+            "endOffset": 5986,
+            "context": "...TION.\n\nARTICLE 8: NON-SOLICITATION (NON-COMPETE REMOVED)\n8.1 Non-Solicitation. During the term of this Agreement and for one (1) year thereafter, neither party shall directly solicit for employment any employee of the other party involved in the performance of Services.\n8.2 Independent Contractors. The parties explicitly agree that previous non-competition restrictions have been removed to comply with California Business and Professions Code Section 16600.\n\nARTICLE 9: TERM AND TERMINATION\n9.1 Term. This Agreement commences on the Effective Date and continues for a period of t..."
+          }
+        }
+      ],
+      "timestamp": "2026-10-09T09:53:17.364Z"
+    }
+  ],
+  "createdAt": "2026-10-09T09:53:16.073Z",
+  "updatedAt": "2026-10-09T09:53:17.364Z"
+}

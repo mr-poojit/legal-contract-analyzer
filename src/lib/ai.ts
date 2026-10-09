@@ -53,11 +53,22 @@ function getClient(overrideKey?: string): OpenAI | null {
   const activeKey = overrideKey?.trim() || getRuntimeConfig().apiKey;
   if (!activeKey) return null;
 
+  const isOpenRouter = activeKey.startsWith('sk-or-v1-');
+  let baseURL = getRuntimeConfig().baseURL;
+  if (isOpenRouter && (!baseURL || baseURL.includes('api.openai.com'))) {
+    baseURL = 'https://openrouter.ai/api/v1';
+  } else if (!baseURL) {
+    baseURL = 'https://api.openai.com/v1';
+  }
+
   if (!clientInstance || overrideKey) {
-    const baseURL = getRuntimeConfig().baseURL || 'https://api.openai.com/v1';
     const client = new OpenAI({
       apiKey: activeKey,
       baseURL,
+      defaultHeaders: isOpenRouter ? {
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'ClauseGuard Legal Analyzer',
+      } : undefined,
     });
     if (!overrideKey) clientInstance = client;
     return client;
@@ -65,135 +76,404 @@ function getClient(overrideKey?: string): OpenAI | null {
   return clientInstance;
 }
 
-function getModel(): string {
-  return getRuntimeConfig().model || 'gpt-4o-mini';
+function getModel(activeKey?: string): string {
+  const key = activeKey || getRuntimeConfig().apiKey;
+  let model = getRuntimeConfig().model || 'gpt-4o-mini';
+  if (key && key.startsWith('sk-or-v1-')) {
+    if (!model.includes('/')) {
+      model = `openai/${model}`;
+    }
+  }
+  return model;
 }
 
 // ============================================================
 // Local Contract Semantic Analysis Engine (No API Key Required)
 // ============================================================
 
+interface ExtractedContext {
+  question: string;
+  context: string;
+  docName: string;
+  isMultiDoc?: boolean;
+  docSections?: { docName: string; text: string }[];
+}
+
 /**
- * Extracts question and document context from messages.
+ * Extracts question and document context from messages, supporting both single and multi-document formats.
  */
-function extractQuestionAndContext(messages: { role: string; content: string }[]): { question: string; context: string; docName: string } {
+function extractQuestionAndContext(messages: { role: string; content: string }[]): ExtractedContext {
   let question = '';
   let context = '';
-  let docName = 'the contract';
+  let docName = 'the document';
+  let isMultiDoc = false;
+  let docSections: { docName: string; text: string }[] = [];
 
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.role === 'user') {
-      const match = msg.content.match(/Document: "([^"]+)"\n\n([\s\S]+)\n\nQuestion: ([\s\S]+)/);
-      if (match) {
-        docName = match[1];
-        context = match[2];
-        question = match[3].trim();
+      const content = msg.content;
+
+      // Format 1: Multi-Document Query format
+      if (content.includes('=== DOCUMENT:')) {
+        isMultiDoc = true;
+        const qMatch = content.match(/Question(?:\s+across\s+all\s+documents)?:\s*([\s\S]+)$/i);
+        if (qMatch) {
+          question = qMatch[1].trim();
+        }
+
+        const docRegex = /=== DOCUMENT: "([^"]+)" ===\n([\s\S]*?)(?:=== END OF "[^"]+" ===|$)/g;
+        let match;
+        while ((match = docRegex.exec(content)) !== null) {
+          docSections.push({
+            docName: match[1],
+            text: match[2].trim(),
+          });
+        }
+        if (docSections.length > 0) {
+          context = content;
+          docName = `${docSections.length} documents`;
+          break;
+        }
+      }
+
+      // Format 2: Single document format
+      const singleMatch = content.match(/Document: "([^"]+)"\n\n([\s\S]+)\n\nQuestion: ([\s\S]+)/);
+      if (singleMatch) {
+        docName = singleMatch[1];
+        context = singleMatch[2];
+        question = singleMatch[3].trim();
         break;
-      } else {
-        question = msg.content.trim();
+      }
+
+      // Format 3: Generic document context + question
+      const genericMatch = content.match(/([\s\S]+?)\n\nQuestion(?:\s+across\s+all\s+documents)?:\s*([\s\S]+)$/i);
+      if (genericMatch) {
+        context = genericMatch[1].trim();
+        question = genericMatch[2].trim();
+        break;
+      }
+
+      question = content.trim();
+    }
+  }
+
+  return { question, context, docName, isMultiDoc, docSections };
+}
+
+// Synonym/concept expansion map for broader matching
+const CONCEPT_SYNONYMS: Record<string, string[]> = {
+  deliverable: ['deliverables', 'deliver', 'output', 'submit', 'submission', 'produce', 'result', 'report', 'generate', 'save', 'export', 'create'],
+  'tech stack': ['technology', 'stack', 'language', 'framework', 'python', 'java', 'javascript', 'react', 'node', 'flask', 'django', 'tool', 'library'],
+  task: ['tasks', 'assignment', 'exercise', 'problem', 'challenge', 'activity', 'requirement', 'step'],
+  deadline: ['deadline', 'due', 'date', 'submit by', 'submission date', 'timeline', 'schedule'],
+  evaluation: ['evaluation', 'criteria', 'grading', 'scoring', 'weight', 'assessment', 'marks', 'grade', 'rubric'],
+  bonus: ['bonus', 'optional', 'extra credit', 'additional', 'extension', 'creative'],
+  input: ['input', 'data', 'json', 'file', 'dataset', 'source'],
+  output: ['output', 'result', 'report', 'generate', 'produce', 'display', 'print', 'save', 'export'],
+  requirement: ['requirement', 'must', 'should', 'shall', 'need', 'required', 'mandatory', 'criteria'],
+  liability: ['liability', 'liable', 'damages', 'aggregate', 'cap', 'limitation', 'limit'],
+  termination: ['terminat', 'cancel', 'end', 'expire', 'convenience', 'cure', 'notice'],
+  payment: ['payment', 'fee', 'invoice', 'pay', 'cost', 'price', 'rate', 'compensation', 'net 30', 'net 45'],
+  confidential: ['confidential', 'nda', 'secret', 'proprietary', 'non-disclosure', 'standard of care'],
+  governing: ['governing law', 'jurisdiction', 'dispute', 'arbitration', 'court', 'venue'],
+  indemnify: ['indemnif', 'hold harmless', 'infring', 'defend'],
+  warranty: ['warrant', 'guarantee', 'disclaimer', 'merchantability', 'fitness'],
+  scope: ['scope', 'service', 'work', 'engagement', 'project', 'objective', 'goal', 'purpose'],
+  party: ['party', 'parties', 'client', 'vendor', 'contractor', 'provider', 'company', 'recipient'],
+};
+
+/**
+ * Extract meaningful keywords from a question, with synonym expansion.
+ */
+function extractQueryTerms(question: string): string[] {
+  const stopWords = new Set([
+    'what', 'when', 'where', 'which', 'who', 'how', 'why', 'does', 'do',
+    'the', 'and', 'for', 'are', 'is', 'in', 'of', 'to', 'a', 'an', 'it',
+    'this', 'that', 'with', 'from', 'on', 'at', 'by', 'be', 'was', 'were',
+    'been', 'being', 'have', 'has', 'had', 'having', 'can', 'could', 'will',
+    'would', 'should', 'may', 'might', 'about', 'there', 'their', 'they',
+    'them', 'than', 'then', 'but', 'not', 'or', 'if', 'its', 'you', 'your',
+    'used', 'using', 'use', 'tell', 'me', 'give', 'get', 'list', 'show',
+    'describe', 'explain', 'mention', 'mentioned', 'find', 'any',
+  ]);
+
+  const qLower = question.toLowerCase();
+  const directWords = qLower
+    .replace(/[?.,!;:"'()]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 1 && !stopWords.has(w));
+
+  // Expand with synonyms
+  const expanded = new Set(directWords);
+  for (const word of directWords) {
+    for (const [concept, synonyms] of Object.entries(CONCEPT_SYNONYMS)) {
+      if (word.includes(concept) || concept.includes(word) || synonyms.some(s => s.includes(word) || word.includes(s))) {
+        for (const syn of synonyms) {
+          expanded.add(syn);
+        }
       }
     }
   }
 
-  return { question, context, docName };
+  return [...expanded];
 }
 
 /**
- * Intelligent local contract answer generator using document clause indexing and semantic keyword extraction.
+ * Split text into meaningful paragraphs/blocks for scoring.
+ * Intelligently recognizes section headings, bullet items, and list numbers.
+ */
+function splitIntoParagraphs(text: string): { text: string; index: number }[] {
+  // Split by double newlines, uppercase section headers, numbered items, bullet points, or page separators
+  const splitRegex = /\n\s*\n|\n(?=[A-Z][A-Z\s&/]{2,}(?:\n|:|\s{2,}))|\n(?=\d+[\.\)]\s)|\n(?=[●•]\s)|(?=---)|\n(?=--\s*\d+\s*of\s*\d+\s*--)/;
+  const rawBlocks = text.split(splitRegex).map(s => s.trim()).filter(s => s.length > 8);
+
+  const result: { text: string; index: number }[] = [];
+  let offset = 0;
+  for (const block of rawBlocks) {
+    const idx = text.indexOf(block, offset);
+    result.push({ text: block, index: idx >= 0 ? idx : offset });
+    offset = (idx >= 0 ? idx : offset) + block.length;
+  }
+  return result;
+}
+
+/**
+ * Score a text block against query terms using multi-strategy matching.
+ */
+function scoreBlock(blockText: string, queryTerms: string[], questionLower: string): number {
+  const blockLower = blockText.toLowerCase();
+  let score = 0;
+
+  // Direct keyword hits
+  for (const term of queryTerms) {
+    if (term.length < 3) continue;
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'gi');
+    const matches = blockLower.match(regex);
+    if (matches) {
+      score += Math.min(matches.length, 4) * 3;
+    }
+  }
+
+  // Exact phrase match from question
+  const cleanQ = questionLower.replace(/[?.,!;:"'()]/g, '').trim();
+  if (cleanQ.length > 5 && blockLower.includes(cleanQ)) {
+    score += 25;
+  }
+
+  // Bigram matching
+  const qWords = cleanQ.split(/\s+/).filter(w => w.length > 2);
+  for (let i = 0; i < qWords.length - 1; i++) {
+    const bigram = qWords[i] + ' ' + qWords[i + 1];
+    if (blockLower.includes(bigram)) {
+      score += 12;
+    }
+  }
+
+  // Heading relevance boost - ONLY if the first line is an actual section title (short, not a bullet item)
+  const firstLine = blockText.split('\n')[0].trim();
+  const isHeading = firstLine.length <= 45 && !/^[●•\-\*]/.test(firstLine);
+  if (isHeading) {
+    const headingLower = firstLine.toLowerCase();
+    for (const term of queryTerms) {
+      if (term.length >= 3 && headingLower.includes(term)) {
+        score += 40; // Decisive boost for genuine section headings (e.g. "TECHNICAL SKILLS", "TASKS:")
+      }
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Formats a clean, human-friendly summary from a text block.
+ */
+function formatBlockSummary(blockText: string): string {
+  const lines = blockText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const formattedLines: string[] = [];
+
+  for (const line of lines) {
+    // If line has a colon (like "Languages : Python, C..."), make the key bold
+    if (line.includes(':') && !line.startsWith('http')) {
+      const colonIdx = line.indexOf(':');
+      const key = line.slice(0, colonIdx).trim().replace(/^[●•\-\*]\s*/, '');
+      const val = line.slice(colonIdx + 1).trim();
+      if (key.length > 0 && val.length > 0) {
+        formattedLines.push(`- **${key}:** ${val}`);
+        continue;
+      }
+    }
+    // If it's a bullet item
+    if (/^[●•\-\*]\s*/.test(line)) {
+      formattedLines.push(`- ${line.replace(/^[●•\-\*]\s*/, '')}`);
+      continue;
+    }
+    // Numbered item
+    if (/^\d+[\.\)]\s*/.test(line)) {
+      formattedLines.push(line);
+      continue;
+    }
+    // Regular heading or line
+    if (line.length <= 40 && /^[A-Z\s&/]{3,}$/.test(line)) {
+      formattedLines.push(`### ${line}`);
+    } else {
+      formattedLines.push(line);
+    }
+  }
+
+  return formattedLines.join('\n');
+}
+
+/**
+ * Intelligent document answer generator using full-text analysis.
+ * Works with any document type — legal contracts, technical assignments, resumes, etc.
  */
 function generateLocalAnswer(question: string, context: string, docName: string): string {
   if (!context || context.trim().length === 0) {
-    return `I could not find information about this in ${docName} because no document context was provided.`;
+    return `I could not find information about this in **${docName}** because no document context was provided.`;
   }
 
-  // Split context into structured paragraphs / sections
-  const sections = context.split(/(?:---|ARTICLE|SECTION|\n\s*\n)/).map(s => s.trim()).filter(Boolean);
+  const questionLower = question.toLowerCase();
+  const queryTerms = extractQueryTerms(question);
 
-  const qLower = question.toLowerCase();
-  const qWords = qLower
-    .replace(/[?.,!;:"]/g, '')
-    .split(/\s+/)
-    .filter(w => w.length > 2 && !['what', 'when', 'where', 'which', 'who', 'how', 'does', 'the', 'and', 'for', 'are', 'is'].includes(w));
+  // Split context into smart blocks
+  const paragraphs = splitIntoParagraphs(context);
 
-  // Score each section based on question keywords and legal concepts
-  const scoredSections: { text: string; score: number; heading?: string }[] = [];
+  // Score every block
+  const scoredBlocks: { text: string; score: number; index: number }[] = [];
+  for (const para of paragraphs) {
+    const score = scoreBlock(para.text, queryTerms, questionLower);
+    if (score > 0) {
+      scoredBlocks.push({ text: para.text, score, index: para.index });
+    }
+  }
 
-  for (const sec of sections) {
-    const secLower = sec.toLowerCase();
-    let score = 0;
+  scoredBlocks.sort((a, b) => b.score - a.score);
 
-    for (const word of qWords) {
-      if (secLower.includes(word)) {
-        score += 2;
+  if (scoredBlocks.length === 0) {
+    const allText = context.substring(0, 1500);
+    return `Based on **${docName}**, I could not find information directly addressing your question about "${question}".\n\n> ℹ️ *Tip: You can rephrase your question or add an OpenAI / OpenRouter API key in the top navigation settings for full generative AI analysis.*`;
+  }
+
+  const maxScore = scoredBlocks[0].score;
+  // Keep the most relevant blocks (at least 60% of max score if maxScore is high, top 2 max)
+  const scoreThreshold = maxScore >= 20 ? maxScore * 0.6 : Math.max(6, maxScore * 0.4);
+  const topBlocks = scoredBlocks
+    .filter(b => b.score >= scoreThreshold)
+    .slice(0, 2);
+
+  // Keep in score order (highest relevance first) so the primary match is answered first
+
+  const cleanQuotes: string[] = [];
+  for (const block of topBlocks) {
+    let cleanText = block.text
+      .replace(/^---.*$/gm, '')
+      .replace(/^Preamble\b.*$/gm, '')
+      .replace(/\[Pages\s*[\d,\s]+\]/gi, '')
+      .replace(/\t+/g, ' ')
+      .replace(/  +/g, ' ')
+      .trim();
+
+    if (!cleanText || cleanText.length < 8) continue;
+
+    // Deduplicate
+    const isDup = cleanQuotes.some(q => q.includes(cleanText) || cleanText.includes(q));
+    if (!isDup) {
+      cleanQuotes.push(cleanText);
+    }
+  }
+
+  if (cleanQuotes.length === 0) {
+    return `Based on **${docName}**, I could not find information directly addressing your question about "${question}".`;
+  }
+
+  // Construct answer with synthesized answer + exact verbatim quote
+  let answerText = `Based on **${docName}**, here is the information addressing your question:\n\n`;
+
+  // Provide a structured summary of the primary section
+  const primaryBlock = cleanQuotes[0];
+  answerText += formatBlockSummary(primaryBlock) + '\n\n';
+
+  answerText += `**Exact Supporting Quote:**\n\n`;
+  for (const quote of cleanQuotes) {
+    answerText += `【${quote}】\n\n`;
+  }
+
+  answerText += `---\n\n*Every quote above is extracted verbatim from **${docName}**. Click the quote to jump directly to this passage in the document viewer.*`;
+
+  return answerText;
+}
+
+/**
+ * Multi-Document comparative analysis engine.
+ * Synthesizes answers and extracts verifiable quotes across multiple contracts simultaneously.
+ */
+function generateMultiDocAnswer(
+  question: string,
+  docSections: { docName: string; text: string }[]
+): string {
+  const questionLower = question.toLowerCase();
+  const queryTerms = extractQueryTerms(question);
+
+  let answerText = `Based on the comparative analysis across the **${docSections.length} selected documents**, here are the findings regarding **"${question}"**:\n\n`;
+
+  for (const doc of docSections) {
+    answerText += `### 📄 ${doc.docName}\n\n`;
+
+    const paragraphs = splitIntoParagraphs(doc.text);
+    const scoredBlocks: { text: string; score: number }[] = [];
+
+    for (const para of paragraphs) {
+      const score = scoreBlock(para.text, queryTerms, questionLower);
+      if (score > 0) {
+        scoredBlocks.push({ text: para.text, score });
       }
     }
 
-    // Keyword synonyms & legal concepts
-    if (qLower.includes('liability') || qLower.includes('cap') || qLower.includes('limit')) {
-      if (secLower.includes('liability') || secLower.includes('damages') || secLower.includes('aggregate')) score += 5;
-    }
-    if (qLower.includes('terminat') || qLower.includes('cancel') || qLower.includes('notice')) {
-      if (secLower.includes('terminat') || secLower.includes('convenience') || secLower.includes('cure') || secLower.includes('notice')) score += 5;
-    }
-    if (qLower.includes('payment') || qLower.includes('fee') || qLower.includes('invoice') || qLower.includes('pay')) {
-      if (secLower.includes('payment') || secLower.includes('fee') || secLower.includes('invoice') || secLower.includes('net 30') || secLower.includes('net 45')) score += 5;
-    }
-    if (qLower.includes('confidential') || qLower.includes('nda') || qLower.includes('secret')) {
-      if (secLower.includes('confidential') || secLower.includes('proprietary') || secLower.includes('standard of care')) score += 5;
-    }
-    if (qLower.includes('govern') || qLower.includes('law') || qLower.includes('jurisdiction') || qLower.includes('court') || qLower.includes('arbitrat')) {
-      if (secLower.includes('governing law') || secLower.includes('jurisdiction') || secLower.includes('dispute resolution') || secLower.includes('arbitration') || secLower.includes('delaware') || secLower.includes('california') || secLower.includes('new york')) score += 5;
-    }
-    if (qLower.includes('ai') || qLower.includes('artificial intelligence') || qLower.includes('model') || qLower.includes('llm') || qLower.includes('training')) {
-      if (secLower.includes('artificial intelligence') || secLower.includes('ai training') || secLower.includes('large language model')) score += 6;
-    }
-    if (qLower.includes('indemnif') || qLower.includes('hold harmless') || qLower.includes('infring')) {
-      if (secLower.includes('indemnif') || secLower.includes('hold harmless') || secLower.includes('infringement')) score += 5;
-    }
-    if (qLower.includes('warrant') || qLower.includes('guarantee')) {
-      if (secLower.includes('warrant') || secLower.includes('disclaimer') || secLower.includes('merchantability')) score += 5;
-    }
-    if (qLower.includes('non-compete') || qLower.includes('compete') || qLower.includes('solicit')) {
-      if (secLower.includes('non-competition') || secLower.includes('non-compete') || secLower.includes('non-solicitation') || secLower.includes('solicit')) score += 5;
+    scoredBlocks.sort((a, b) => b.score - a.score);
+
+    if (scoredBlocks.length === 0) {
+      answerText += `No specific provisions addressing this question were identified in this document.\n\n---\n\n`;
+      continue;
     }
 
-    if (score > 0) {
-      scoredSections.push({ text: sec, score });
+    const maxScore = scoredBlocks[0].score;
+    const scoreThreshold = maxScore >= 20 ? maxScore * 0.55 : Math.max(5, maxScore * 0.4);
+    const topBlocks = scoredBlocks
+      .filter(b => b.score >= scoreThreshold)
+      .slice(0, 2);
+
+    const primaryBlock = topBlocks[0].text;
+    let cleanPrimary = primaryBlock
+      .replace(/^---.*$/gm, '')
+      .replace(/^Preamble\b.*$/gm, '')
+      .replace(/\[Pages\s*[\d,\s]+\]/gi, '')
+      .replace(/\t+/g, ' ')
+      .replace(/  +/g, ' ')
+      .trim();
+
+    answerText += formatBlockSummary(cleanPrimary) + '\n\n';
+
+    answerText += `**Supporting Quote:**\n\n`;
+    for (const b of topBlocks) {
+      let cleanQuote = b.text
+        .replace(/^---.*$/gm, '')
+        .replace(/^Preamble\b.*$/gm, '')
+        .replace(/\[Pages\s*[\d,\s]+\]/gi, '')
+        .replace(/\t+/g, ' ')
+        .replace(/  +/g, ' ')
+        .trim();
+
+      if (cleanQuote.length >= 8) {
+        answerText += `【${cleanQuote}】\n\n`;
+      }
     }
+
+    answerText += `---\n\n`;
   }
 
-  scoredSections.sort((a, b) => b.score - a.score);
-
-  if (scoredSections.length === 0 || scoredSections[0].score === 0) {
-    return `Based on the provided sections of **${docName}**, I could not find information addressing your question about "${question}".\n\n> ℹ️ *Tip: You can rephrase your question or add an OpenAI API key in the top navigation settings for full generative AI analysis.*`;
-  }
-
-  // Extract the top 2 matching sections
-  const topSections = scoredSections.slice(0, 2);
-  let answerText = `Based on **${docName}**, here is the relevant contractual analysis:\n\n`;
-
-  for (let i = 0; i < topSections.length; i++) {
-    const item = topSections[i];
-    // Find key sentences within the section
-    const sentences = item.text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 20);
-    const relevantSentence = sentences.find(s => {
-      const sLower = s.toLowerCase();
-      return qWords.some(w => sLower.includes(w)) ||
-        sLower.includes('liability') ||
-        sLower.includes('terminat') ||
-        sLower.includes('shall') ||
-        sLower.includes('governed by') ||
-        sLower.includes('warrants');
-    }) || sentences[0] || item.text.substring(0, 200);
-
-    const cleanQuote = relevantSentence.trim().replace(/^[-*•\d.]+\s*/, '');
-
-    answerText += `### Key Provision ${i + 1}\n\n`;
-    answerText += `The contract stipulates the following terms: 【${cleanQuote}】\n\n`;
-  }
-
-  answerText += `\n*Every quote above has been extracted verbatim from ${docName} and verified against the source text.*`;
+  answerText += `*All quotes above are extracted verbatim from their respective contracts and verified against the source text.*`;
 
   return answerText;
 }
@@ -208,13 +488,16 @@ export async function chatCompletion(
 ): Promise<string> {
   const client = getClient(options?.apiKey);
   if (!client) {
-    const { question, context, docName } = extractQuestionAndContext(messages);
-    return generateLocalAnswer(question, context, docName);
+    const extracted = extractQuestionAndContext(messages);
+    if (extracted.isMultiDoc && extracted.docSections && extracted.docSections.length > 0) {
+      return generateMultiDocAnswer(extracted.question, extracted.docSections);
+    }
+    return generateLocalAnswer(extracted.question, extracted.context, extracted.docName);
   }
 
   try {
     const response = await client.chat.completions.create({
-      model: getModel(),
+      model: getModel(options?.apiKey),
       messages,
       temperature: options?.temperature ?? 0.3,
       max_tokens: options?.maxTokens ?? 4096,
@@ -222,8 +505,11 @@ export async function chatCompletion(
     return response.choices[0]?.message?.content || '';
   } catch (err) {
     console.warn('AI chatCompletion failed, falling back to local analysis:', err);
-    const { question, context, docName } = extractQuestionAndContext(messages);
-    return generateLocalAnswer(question, context, docName);
+    const extracted = extractQuestionAndContext(messages);
+    if (extracted.isMultiDoc && extracted.docSections && extracted.docSections.length > 0) {
+      return generateMultiDocAnswer(extracted.question, extracted.docSections);
+    }
+    return generateLocalAnswer(extracted.question, extracted.context, extracted.docName);
   }
 }
 
@@ -239,8 +525,10 @@ export async function* streamChatCompletion(
 
   if (!client) {
     // Local Analysis Streaming Fallback
-    const { question, context, docName } = extractQuestionAndContext(messages);
-    const fullAnswer = generateLocalAnswer(question, context, docName);
+    const extracted = extractQuestionAndContext(messages);
+    const fullAnswer = (extracted.isMultiDoc && extracted.docSections && extracted.docSections.length > 0)
+      ? generateMultiDocAnswer(extracted.question, extracted.docSections)
+      : generateLocalAnswer(extracted.question, extracted.context, extracted.docName);
 
     // Stream out chunks smoothly
     const words = fullAnswer.split(' ');
@@ -250,7 +538,6 @@ export async function* streamChatCompletion(
       if (currentChunk.length >= 25 || i === words.length - 1) {
         yield currentChunk;
         currentChunk = '';
-        // Short pause between chunks for natural streaming feeling
         await new Promise(r => setTimeout(r, 20));
       }
     }
@@ -259,7 +546,7 @@ export async function* streamChatCompletion(
 
   try {
     const stream = await client.chat.completions.create({
-      model: getModel(),
+      model: getModel(options?.apiKey),
       messages,
       temperature: options?.temperature ?? 0.3,
       max_tokens: options?.maxTokens ?? 4096,
@@ -274,8 +561,10 @@ export async function* streamChatCompletion(
     }
   } catch (error) {
     console.warn('Live AI stream failed, falling back to local analysis:', error);
-    const { question, context, docName } = extractQuestionAndContext(messages);
-    const localAnswer = generateLocalAnswer(question, context, docName);
+    const extracted = extractQuestionAndContext(messages);
+    const localAnswer = (extracted.isMultiDoc && extracted.docSections && extracted.docSections.length > 0)
+      ? generateMultiDocAnswer(extracted.question, extracted.docSections)
+      : generateLocalAnswer(extracted.question, extracted.context, extracted.docName);
     const words = localAnswer.split(' ');
     let currentChunk = '';
     for (let i = 0; i < words.length; i++) {
@@ -361,7 +650,7 @@ export async function chatCompletionWithTools(
 
   try {
     const response = await client.chat.completions.create({
-      model: getModel(),
+      model: getModel(options?.apiKey),
       messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
       tools: tools as OpenAI.Chat.Completions.ChatCompletionTool[],
       tool_choice: 'auto',
@@ -405,7 +694,7 @@ export async function chatCompletionWithTools(
 // ============================================================
 
 export const SYSTEM_PROMPTS = {
-  documentChat: `You are a precise legal document analyst. You answer questions ONLY based on the document text provided.
+  documentChat: `You are a precise document analyst. You answer questions ONLY based on the document text provided.
 
 CRITICAL RULES:
 1. Only answer based on the document text provided. If the answer is not in the document, say "I could not find information about this in the document."
@@ -416,6 +705,8 @@ CRITICAL RULES:
 6. If you only have access to part of the document, explicitly state this.
 7. Be precise about what the document says vs. what it doesn't say.
 8. Never state that something doesn't exist in the document unless you've searched the entire document.
+9. Answer comprehensively — if the question asks about deliverables, tasks, or requirements, list ALL of them found in the document.
+10. Use markdown formatting (headings, bullet points, numbered lists) for clear, readable answers.
 
 Format your response clearly with the relevant quotes inline.`,
 
@@ -454,7 +745,7 @@ Respond in JSON format with this structure:
   "overallSummary": "A paragraph summarizing the key changes"
 }`,
 
-  agentResearch: `You are a legal document research agent. You have access to tools to search and navigate a document. Use them to find relevant information before answering.
+  agentResearch: `You are a document research agent. You have access to tools to search and navigate a document. Use them to find relevant information before answering.
 
 CRITICAL RULES:
 1. Use the tools provided to search the document systematically.
@@ -462,5 +753,6 @@ CRITICAL RULES:
 3. If a search doesn't find what you need, try different search terms.
 4. Once you have enough information, provide your answer with exact quotes using 【quote text】brackets.
 5. If you've exhausted your searches and can't find the answer, say so honestly.
-6. Always cite which section/page the information came from.`,
+6. Always cite which section/page the information came from.
+7. Answer comprehensively — list ALL relevant items found, don't stop at the first match.`,
 };

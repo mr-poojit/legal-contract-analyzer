@@ -218,27 +218,31 @@ function DocumentPageContent() {
 
                 if (data.type === 'chunk') {
                   setMessages(prev => {
+                    const lastIndex = prev.length - 1;
+                    if (lastIndex < 0 || prev[lastIndex].role !== 'assistant') return prev;
                     const updated = [...prev];
-                    const last = updated[updated.length - 1];
-                    if (last && last.role === 'assistant') {
-                      last.content += data.content;
-                    }
-                    return [...updated];
+                    updated[lastIndex] = {
+                      ...updated[lastIndex],
+                      content: updated[lastIndex].content + data.content,
+                    };
+                    return updated;
                   });
                 } else if (data.type === 'agent_step') {
                   setAgentSteps(prev => [...prev, data.step]);
                 } else if (data.type === 'done') {
                   if (data.chatId) setChatId(data.chatId);
                   setMessages(prev => {
+                    const lastIndex = prev.length - 1;
+                    if (lastIndex < 0 || prev[lastIndex].role !== 'assistant') return prev;
                     const updated = [...prev];
-                    const last = updated[updated.length - 1];
-                    if (last && last.role === 'assistant') {
-                      last.isStreaming = false;
-                      last.quotes = data.quotes;
-                      last.agentSteps = data.agentSteps;
-                      last.id = data.messageId || last.id;
-                    }
-                    return [...updated];
+                    updated[lastIndex] = {
+                      ...updated[lastIndex],
+                      isStreaming: false,
+                      quotes: data.quotes,
+                      agentSteps: data.agentSteps,
+                      id: data.messageId || updated[lastIndex].id,
+                    };
+                    return updated;
                   });
 
                   // Refresh chat sessions
@@ -247,13 +251,15 @@ function DocumentPageContent() {
                   setChatSessions(sessData.sessions || []);
                 } else if (data.type === 'error') {
                   setMessages(prev => {
+                    const lastIndex = prev.length - 1;
+                    if (lastIndex < 0 || prev[lastIndex].role !== 'assistant') return prev;
                     const updated = [...prev];
-                    const last = updated[updated.length - 1];
-                    if (last && last.role === 'assistant') {
-                      last.content = `⚠️ ${data.error}\n\n*Click "API Key" in the top bar to set up your AI key, or continue using the built-in contract analyzer.*`;
-                      last.isStreaming = false;
-                    }
-                    return [...updated];
+                    updated[lastIndex] = {
+                      ...updated[lastIndex],
+                      content: `⚠️ ${data.error}\n\n*Click "API Key" in the top bar to set up your AI key, or continue using the built-in contract analyzer.*`,
+                      isStreaming: false,
+                    };
+                    return updated;
                   });
                 }
               } catch {}

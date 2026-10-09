@@ -1,9 +1,12 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+  serverExternalPackages: ['pdf-parse', 'mammoth'],
 };
 
 export default nextConfig;
+

@@ -1,0 +1,34 @@
+{
+  "id": "23c3b2e7-7ca1-41a6-a9d6-682afff3b319",
+  "documentId": "e8eb4d6f-ee0e-40a8-8cee-48afd999e6ad",
+  "title": "What is the governing law?",
+  "messages": [
+    {
+      "id": "ac6fb4eb-b2cb-4372-ab8f-5dbb2718adf5",
+      "role": "user",
+      "content": "What is the governing law?",
+      "timestamp": "2026-10-09T10:25:34.477Z"
+    },
+    {
+      "id": "e5cbc76c-7969-4da6-a6d9-5b7d798a099d",
+      "role": "assistant",
+      "content": "Based on **Horizon-Cipher-Mutual-NDA.pdf**, here is the information addressing your question:\n\n10. GOVERNING LAW AND JURISDICTION\nThis Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York.\n\n**Exact Supporting Quote:**\n\n【10. GOVERNING LAW AND JURISDICTION\nThis Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York.】\n\n---\n\n*Every quote above is extracted verbatim from **Horizon-Cipher-Mutual-NDA.pdf**. Click the quote to jump directly to this passage in the document viewer.*",
+      "quotes": [
+        {
+          "text": "10. GOVERNING LAW AND JURISDICTION\nThis Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York.",
+          "verified": true,
+          "originalText": "SDICTION\nThis Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York.",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 3500,
+            "endOffset": 3698,
+            "context": "...to seek injunctive relief and specific performance without posting bond.\n\n10. GOVERNING LAW AND JURISDICTION\nThis Agreement shall be governed by the laws of the State of New York. The parties submit to the exclusive jurisdiction of the state and federal courts located in New York County, New York."
+          }
+        }
+      ],
+      "timestamp": "2026-10-09T10:25:35.934Z"
+    }
+  ],
+  "createdAt": "2026-10-09T10:25:34.477Z",
+  "updatedAt": "2026-10-09T10:25:35.934Z"
+}

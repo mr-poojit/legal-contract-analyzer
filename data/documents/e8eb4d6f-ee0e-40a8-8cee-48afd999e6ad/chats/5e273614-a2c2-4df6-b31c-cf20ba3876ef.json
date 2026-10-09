@@ -1,0 +1,78 @@
+{
+  "id": "5e273614-a2c2-4df6-b31c-cf20ba3876ef",
+  "documentId": "e8eb4d6f-ee0e-40a8-8cee-48afd999e6ad",
+  "title": "what NDA is this?",
+  "messages": [
+    {
+      "id": "8f4141d6-c2c7-4cb0-b7b7-c4c6c5afa9d2",
+      "role": "user",
+      "content": "what NDA is this?",
+      "timestamp": "2026-10-09T10:12:19.873Z"
+    },
+    {
+      "id": "5a3a635c-1db0-4b07-b91a-0fc43a7511a6",
+      "role": "assistant",
+      "content": "Based on **Horizon-Cipher-Mutual-NDA.pdf**, here is the relevant information extracted directly from the document:\n\n### Section 1\n\n【This Mutual Non-Disclosure Agreement (\"NDA\") is made effective as of February 10, 2024, between Horizon BioVentures Inc. (\"Horizon\") and Cipher Health Analytics LLC (\"Cipher\").】\n\n### Section 2\n\n【1. PURPOSE\nThe parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").】\n\n### Section 3\n\n【2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and circumstances of disclosure. Confidential Information includes genomic algorithms, clinical trial data, software architectures, patent filings, financial models, and customer lists.】\n\n### Section 4\n\n【3. OBLIGATIONS OF RECEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.】\n\n### Section 5\n\n【4. EXCLUSIONS FROM CONFIDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.】\n\n---\n\n*Every quote above has been extracted verbatim from **Horizon-Cipher-Mutual-NDA.pdf** and verified against the source text. You can click any quote to jump directly to that section in the document viewer.*",
+      "quotes": [
+        {
+          "text": "This Mutual Non-Disclosure Agreement (\"NDA\") is made effective as of February 10, 2024, between Horizon BioVentures Inc. (\"Horizon\") and Cipher Health Analytics LLC (\"Cipher\").",
+          "verified": true,
+          "originalText": "s Mutual Non-Disclosure Agreement (\"NDA\") is made effective as of February 10, 2024, between Horizon BioVentures Inc. (\"Horizon\") and Cipher Health Analytics LLC (\"Cipher\").\n\n1. PURPOSE\nThe parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").\n\n",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 36,
+            "endOffset": 388,
+            "context": "MUTUAL NON-DISCLOSURE AGREEMENT\n\nThis Mutual Non-Disclosure Agreement (\"NDA\") is made effective as of February 10, 2024, between Horizon BioVentures Inc. (\"Horizon\") and Cipher Health Analytics LLC (\"Cipher\").\n\n1. PURPOSE\nThe parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").\n\n2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public informatio..."
+          }
+        },
+        {
+          "text": "1. PURPOSE\nThe parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").",
+          "verified": true,
+          "originalText": "sh to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").\n\n2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as conf",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 236,
+            "endOffset": 586,
+            "context": "... BioVentures Inc. (\"Horizon\") and Cipher Health Analytics LLC (\"Cipher\").\n\n1. PURPOSE\nThe parties wish to explore a potential strategic partnership and commercial collaboration involving proprietary genomic analytics pipelines (\"Authorized Purpose\").\n\n2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the informat..."
+          }
+        },
+        {
+          "text": "2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and circumstances of disclosure. Confidential Information includes genomic algorithms, clinical trial data, software architectures, patent filings, financial models, and customer lists.",
+          "verified": true,
+          "originalText": "FIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and circumstances of disclosure. Confidential Information includes genomic algorithms, clinical trial data, software architectures, patent filings, financial models, and customer lists.\n\n3. OBLIGATIONS OF RECEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 408,
+            "endOffset": 1382,
+            "context": "...tion involving proprietary genomic analytics pipelines (\"Authorized Purpose\").\n\n2. DEFINITION OF CONFIDENTIAL INFORMATION\n\"Confidential Information\" means all non-public information disclosed by either party to the other, whether orally or in writing, that is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and circumstances of disclosure. Confidential Information includes genomic algorithms, clinical trial data, software architectures, patent filings, financial models, and customer lists.\n\n3. OBLIGATIONS OF RECEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.\n\n4. EX..."
+          }
+        },
+        {
+          "text": "3. OBLIGATIONS OF RECEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.",
+          "verified": true,
+          "originalText": "CEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.\n\n4. EXCLUSIONS FROM CONFIDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.\n\n5. COMPELLED DISCLOSURE\nIf the receiving party is required by law, subpoena, or regula",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 897,
+            "endOffset": 2093,
+            "context": "... software architectures, patent filings, financial models, and customer lists.\n\n3. OBLIGATIONS OF RECEIVING PARTY\nThe receiving party agrees:\n(a) To hold the disclosing party's Confidential Information in strict confidence;\n(b) Not to disclose Confidential Information to any third party without prior written authorization, except to its employees and legal advisors who have a need to know and are bound by confidentiality obligations at least as restrictive as those herein;\n(c) To use Confidential Information solely for the Authorized Purpose and for no other purpose whatsoever;\n(d) To implement bank-grade security safeguards to prevent unauthorized access or disclosure.\n\n4. EXCLUSIONS FROM CONFIDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.\n\n5. COMPELLED DISCLOSURE\nIf the receiving party is required by law, subpoena, or regulatory authority to disclose Confidential Information, it shall give prompt written notice to the disc..."
+          }
+        },
+        {
+          "text": "4. EXCLUSIONS FROM CONFIDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.",
+          "verified": true,
+          "originalText": "IDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.\n\n5. COMPELLED DISCLOSURE\nIf the receiving party is required by law, subpoena, or regulatory authority to disclose Confidential Information, it shall give prompt written notice to the disclosing party to permit the disclosing party to seek a protective order or contest the disclosure.\n\n6. RETURN OR DESTRUCTION OF MATERIALS\nUpon written request of the disclosing party or upon termination of discussions, the receiving party shall immediately return or securely destroy all copies, notes, summaries, and extracts of Confidential Information, and cert",
+          "location": {
+            "pageNumber": 1,
+            "startOffset": 1500,
+            "endOffset": 2556,
+            "context": "...ank-grade security safeguards to prevent unauthorized access or disclosure.\n\n4. EXCLUSIONS FROM CONFIDENTIALITY\nConfidential Information does not include information that:\n(a) Is or becomes generally known to the public without breach of any obligation owed to the disclosing party;\n(b) Was known to the receiving party prior to its disclosure without breach of confidentiality;\n(c) Is received from a third party without breach of any confidentiality obligation;\n(d) Was independently developed by the receiving party without reference to or reliance upon the disclosing party's Confidential Information.\n\n5. COMPELLED DISCLOSURE\nIf the receiving party is required by law, subpoena, or regulatory authority to disclose Confidential Information, it shall give prompt written notice to the disclosing party to permit the disclosing party to seek a protective order or contest the disclosure.\n\n6. RETURN OR DESTRUCTION OF MATERIALS\nUpon written request of the disclosing party or upon termination of discussions, the receiving party shall immediately return or securely destroy all copies, notes, summaries, and extracts of Confidential Information, and certify in writing that all such materials have been destroyed within fourteen (14) days.\n\n7. NO LICENSE..."
+          }
+        }
+      ],
+      "timestamp": "2026-10-09T10:12:22.845Z"
+    }
+  ],
+  "createdAt": "2026-10-09T10:12:19.872Z",
+  "updatedAt": "2026-10-09T10:12:22.845Z"
+}
