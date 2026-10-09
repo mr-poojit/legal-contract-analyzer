@@ -80,30 +80,35 @@ export async function POST(request: NextRequest) {
       model: finalModel,
     });
 
-    // 2. Persist to .env.local
-    let envContent = '';
-    if (fs.existsSync(ENV_LOCAL_PATH)) {
-      envContent = fs.readFileSync(ENV_LOCAL_PATH, 'utf-8');
-    }
-
-    const envMap = new Map<string, string>();
-    envContent.split('\n').forEach(line => {
-      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
-      if (match) {
-        envMap.set(match[1], match[2] || '');
+    // 2. Persist to .env.local if writable (e.g., local dev)
+    try {
+      let envContent = '';
+      if (fs.existsSync(ENV_LOCAL_PATH)) {
+        envContent = fs.readFileSync(ENV_LOCAL_PATH, 'utf-8');
       }
-    });
 
-    envMap.set('OPENAI_API_KEY', cleanKey);
-    envMap.set('OPENAI_BASE_URL', finalBaseURL);
-    envMap.set('OPENAI_MODEL', finalModel);
+      const envMap = new Map<string, string>();
+      envContent.split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+        if (match) {
+          envMap.set(match[1], match[2] || '');
+        }
+      });
 
-    const newEnvLines: string[] = [];
-    for (const [key, value] of envMap.entries()) {
-      newEnvLines.push(`${key}=${value}`);
+      envMap.set('OPENAI_API_KEY', cleanKey);
+      envMap.set('OPENAI_BASE_URL', finalBaseURL);
+      envMap.set('OPENAI_MODEL', finalModel);
+
+      const newEnvLines: string[] = [];
+      for (const [key, value] of envMap.entries()) {
+        newEnvLines.push(`${key}=${value}`);
+      }
+
+      fs.writeFileSync(ENV_LOCAL_PATH, newEnvLines.join('\n') + '\n', 'utf-8');
+    } catch {
+      // In serverless / read-only filesystem (like Vercel), ignore disk write failure.
+      // Runtime in-memory config is already active.
     }
-
-    fs.writeFileSync(ENV_LOCAL_PATH, newEnvLines.join('\n') + '\n', 'utf-8');
 
     return NextResponse.json({
       success: true,
@@ -124,12 +129,16 @@ export async function DELETE() {
   try {
     setRuntimeConfig({ apiKey: '', baseURL: 'https://api.openai.com/v1', model: 'gpt-4o-mini' });
 
-    if (fs.existsSync(ENV_LOCAL_PATH)) {
-      let envContent = fs.readFileSync(ENV_LOCAL_PATH, 'utf-8');
-      envContent = envContent
-        .replace(/^OPENAI_API_KEY=.*$/m, '')
-        .replace(/^AI_API_KEY=.*$/m, '');
-      fs.writeFileSync(ENV_LOCAL_PATH, envContent.trim() + '\n', 'utf-8');
+    try {
+      if (fs.existsSync(ENV_LOCAL_PATH)) {
+        let envContent = fs.readFileSync(ENV_LOCAL_PATH, 'utf-8');
+        envContent = envContent
+          .replace(/^OPENAI_API_KEY=.*$/m, '')
+          .replace(/^AI_API_KEY=.*$/m, '');
+        fs.writeFileSync(ENV_LOCAL_PATH, envContent.trim() + '\n', 'utf-8');
+      }
+    } catch {
+      // read-only ignore
     }
 
     return NextResponse.json({ success: true, message: 'API key cleared.' });
