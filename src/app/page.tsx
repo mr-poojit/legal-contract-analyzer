@@ -58,7 +58,12 @@ export default function HomePage() {
       });
       const data = await res.json();
       if (data.documents && Array.isArray(data.documents)) {
-        setDocuments(data.documents);
+        let deletedIds: string[] = [];
+        try {
+          deletedIds = JSON.parse(localStorage.getItem('deleted_doc_ids') || '[]');
+        } catch {}
+        const filtered = data.documents.filter((d: DocumentMeta) => !deletedIds.includes(d.id));
+        setDocuments(filtered);
       } else {
         setDocuments([]);
       }
@@ -71,6 +76,9 @@ export default function HomePage() {
 
   const handleSeedSamples = async () => {
     setIsSeeding(true);
+    try {
+      localStorage.removeItem('deleted_doc_ids');
+    } catch {}
     try {
       await fetch('/api/documents/seed', { method: 'POST' });
       await loadDocuments();
@@ -128,6 +136,14 @@ export default function HomePage() {
           return;
         }
 
+        if (data.docId) {
+          try {
+            const deleted: string[] = JSON.parse(localStorage.getItem('deleted_doc_ids') || '[]');
+            const updated = deleted.filter(id => id !== data.docId);
+            localStorage.setItem('deleted_doc_ids', JSON.stringify(updated));
+          } catch {}
+        }
+
         if (data.meta?.status === 'error') {
           setUploadError(data.meta.error || 'Processing failed');
           setUploadProgress(null);
@@ -150,10 +166,23 @@ export default function HomePage() {
   });
 
   const deleteDocument = async (docId: string) => {
+    // 1. Optimistically remove from state immediately
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+    setDeleteConfirm(null);
+
+    // 2. Persist deleted ID in localStorage
+    try {
+      const deleted: string[] = JSON.parse(localStorage.getItem('deleted_doc_ids') || '[]');
+      if (!deleted.includes(docId)) {
+        deleted.push(docId);
+        localStorage.setItem('deleted_doc_ids', JSON.stringify(deleted));
+      }
+    } catch {}
+
+    // 3. Delete from backend storage
     try {
       await fetch(`/api/documents/${docId}`, { method: 'DELETE' });
       await loadDocuments();
-      setDeleteConfirm(null);
     } catch {
       console.error('Delete failed');
     }

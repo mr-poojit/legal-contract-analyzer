@@ -21,8 +21,50 @@ interface CachedDoc {
 const inMemoryDocs = new Map<string, CachedDoc>();
 const deletedDocIds = new Set<string>();
 
+function getDeletedIdsPath() {
+  return path.join(getDataDir(), 'deleted_ids.json');
+}
+
+function loadDeletedIds(): Set<string> {
+  try {
+    const p = getDeletedIdsPath();
+    if (fs.existsSync(p)) {
+      const arr = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      if (Array.isArray(arr)) {
+        for (const id of arr) deletedDocIds.add(id);
+      }
+    }
+  } catch {}
+  return deletedDocIds;
+}
+
+function saveDeletedId(docId: string) {
+  deletedDocIds.add(docId);
+  try {
+    const p = getDeletedIdsPath();
+    fs.writeFileSync(p, JSON.stringify(Array.from(deletedDocIds)), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to save deleted id:', err);
+  }
+}
+
+function removeDeletedId(docId: string) {
+  deletedDocIds.delete(docId);
+  try {
+    const p = getDeletedIdsPath();
+    if (fs.existsSync(p)) {
+      const arr = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      if (Array.isArray(arr)) {
+        const filtered = arr.filter((id: string) => id !== docId);
+        fs.writeFileSync(p, JSON.stringify(filtered), 'utf-8');
+      }
+    }
+  } catch {}
+}
+
 // Pre-populate with all sample legal contracts
 function initSampleDocsInMemory() {
+  loadDeletedIds();
   const samples = getAllSampleDocuments();
   for (const sample of samples) {
     if (!deletedDocIds.has(sample.id) && !inMemoryDocs.has(sample.id)) {
@@ -164,7 +206,7 @@ export function getDocumentFilePath(docId: string): string | null {
 }
 
 export function saveDocumentMeta(docId: string, meta: DocumentMeta) {
-  deletedDocIds.delete(docId);
+  removeDeletedId(docId);
 
   // 1. Cache in memory
   const cached = inMemoryDocs.get(docId);
@@ -337,7 +379,7 @@ export function listDocuments(): DocumentMeta[] {
 }
 
 export function deleteDocument(docId: string): boolean {
-  deletedDocIds.add(docId);
+  saveDeletedId(docId);
   inMemoryDocs.delete(docId);
 
   try {
