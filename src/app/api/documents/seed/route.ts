@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server';
 import { autoSeedSampleDocs, listDocuments } from '@/lib/storage';
 import { getAllSampleDocuments } from '@/lib/sampleDocs';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST() {
   try {
     const beforeCount = listDocuments().length;

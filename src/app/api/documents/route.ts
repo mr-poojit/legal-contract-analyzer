@@ -7,6 +7,8 @@ import { processDocument, validateFileType } from '@/lib/documentProcessor';
 import { listDocuments, initStorage } from '@/lib/storage';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,8 +24,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const validation = validateFileType(file.type);
+    // Validate file type (supports both MIME and filename extension)
+    const validation = validateFileType(file.type, file.name);
     if (!validation.valid) {
       return NextResponse.json(
         { error: validation.error },
@@ -42,7 +44,14 @@ export async function POST(request: NextRequest) {
       file.type
     );
 
-    return NextResponse.json({ docId, meta });
+    return NextResponse.json(
+      { docId, meta },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      }
+    );
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
@@ -56,7 +65,16 @@ export async function GET() {
   try {
     initStorage();
     const documents = listDocuments();
-    return NextResponse.json({ documents });
+    return NextResponse.json(
+      { documents },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('List documents error:', error);
     return NextResponse.json(

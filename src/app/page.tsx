@@ -52,11 +52,18 @@ export default function HomePage() {
 
   const loadDocuments = useCallback(async () => {
     try {
-      const res = await fetch('/api/documents');
+      const res = await fetch('/api/documents?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await res.json();
-      setDocuments(data.documents || []);
-    } catch {
-      console.error('Failed to load documents');
+      if (data.documents && Array.isArray(data.documents)) {
+        setDocuments(data.documents);
+      } else {
+        setDocuments([]);
+      }
+    } catch (err) {
+      console.error('Failed to load documents', err);
     } finally {
       setIsLoading(false);
     }
@@ -79,15 +86,25 @@ export default function HomePage() {
   }, [loadDocuments]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    for (const file of acceptedFiles) {
-      // Validate type client-side
-      const validTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      ];
+    if (!acceptedFiles || acceptedFiles.length === 0) return;
 
-      if (!validTypes.includes(file.type)) {
-        setUploadError(`"${file.name}" is not supported. Only PDF and DOCX files are accepted.`);
+    for (const file of acceptedFiles) {
+      const lowerName = file.name.toLowerCase();
+      const isPdf = file.type === 'application/pdf' || lowerName.endsWith('.pdf');
+      const isDocx =
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        file.type === 'application/msword' ||
+        file.type === 'application/x-zip-compressed' ||
+        file.type === 'application/zip' ||
+        lowerName.endsWith('.docx');
+
+      if (!isPdf && !isDocx) {
+        setUploadError(`"${file.name}" is not supported. Only PDF (.pdf) and Word (.docx) files are accepted.`);
+        return;
+      }
+
+      if (file.size > 4.5 * 1024 * 1024) {
+        setUploadError(`"${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)} MB. Maximum allowed upload size is 4.5 MB.`);
         return;
       }
 
@@ -121,7 +138,7 @@ export default function HomePage() {
         setUploadProgress(null);
         await loadDocuments();
       } catch (err) {
-        setUploadError('Upload failed. Please try again.');
+        setUploadError(`Upload failed: ${err instanceof Error ? err.message : 'Network error'}. Please try again.`);
         setUploadProgress(null);
       }
     }
@@ -129,10 +146,6 @@ export default function HomePage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-    },
     multiple: false,
   });
 
