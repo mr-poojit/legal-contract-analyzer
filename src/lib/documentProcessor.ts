@@ -1,7 +1,6 @@
 // ============================================================
 // Document Processor - PDF and DOCX text extraction
 // ============================================================
-import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import { DocumentMeta, DocumentPage } from './types';
 import {
@@ -11,8 +10,6 @@ import {
   saveDocumentPages,
 } from './storage';
 import { v4 as uuidv4 } from 'uuid';
-
-const MIN_TEXT_RATIO = 0.005; // Minimum chars per page to consider readable
 
 export function validateFileType(
   mimeType: string,
@@ -48,7 +45,7 @@ export function validateFileType(
 }
 
 // ============================================================
-// PDF Processing
+// PDF Processing (Pure JS pdf-parse 1.1.1)
 // ============================================================
 
 interface PdfPageText {
@@ -56,79 +53,52 @@ interface PdfPageText {
   text: string;
 }
 
-function extractRawPdfTextFallback(buffer: Buffer): { fullText: string; pages: PdfPageText[]; pageCount: number } {
-  try {
-    const content = buffer.toString('binary');
-    const textMatches: string[] = [];
-    const regex = /\(([^)]+)\)\s*T[jJ]/g;
-    let match;
-    while ((match = regex.exec(content)) !== null) {
-      const decoded = match[1].replace(/\\([()\\])/g, '$1').trim();
-      if (decoded.length > 0) {
-        textMatches.push(decoded);
-      }
-    }
-
-    const rawText = textMatches.join(' ').replace(/\s+/g, ' ').trim();
-    if (rawText.length > 10) {
-      return {
-        fullText: rawText,
-        pages: [{ pageNumber: 1, text: rawText }],
-        pageCount: 1,
-      };
-    }
-  } catch (err) {
-    console.warn('Raw PDF text extraction failed:', err);
-  }
-
-  return {
-    fullText: 'Extracted PDF document text.',
-    pages: [{ pageNumber: 1, text: 'Extracted PDF document text.' }],
-    pageCount: 1,
-  };
-}
-
 async function extractPdfText(buffer: Buffer): Promise<{ fullText: string; pages: PdfPageText[]; pageCount: number }> {
   try {
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const textResult = await parser.getText();
-    const pageCount = textResult.total || 0;
-    const pages: PdfPageText[] = [];
+    // Dynamic require pure JS pdf-parse
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(buffer);
+    const fullText = (data.text || '').trim();
+    const pageCount = data.numpages || 1;
 
-    if (textResult.pages && textResult.pages.length > 0) {
-      for (const p of textResult.pages) {
-        pages.push({
-          pageNumber: p.num,
-          text: (p.text || '').trim(),
-        });
+    // Split text into approximate pages by form feed
+    const pages: PdfPageText[] = [];
+    const rawPages = fullText.split(/\f/);
+
+    if (rawPages.length > 1) {
+      for (let i = 0; i < rawPages.length; i++) {
+        const text = rawPages[i].trim();
+        if (text) {
+          pages.push({ pageNumber: pages.length + 1, text });
+        }
       }
     } else {
-      const pageTexts = (textResult.text || '').split(/\f/);
-      for (let i = 0; i < Math.max(pageTexts.length, pageCount); i++) {
-        pages.push({
-          pageNumber: i + 1,
-          text: (pageTexts[i] || '').trim(),
-        });
+      // Divide by length if no form feeds
+      const charsPerPage = Math.max(1500, Math.ceil(fullText.length / pageCount));
+      let currentOffset = 0;
+      for (let p = 1; p <= pageCount; p++) {
+        const slice = fullText.slice(currentOffset, currentOffset + charsPerPage).trim();
+        if (slice) {
+          pages.push({ pageNumber: p, text: slice });
+        }
+        currentOffset += charsPerPage;
       }
     }
 
-    try {
-      await parser.destroy();
-    } catch {}
-
-    const fullText = (textResult.text || '').trim();
-    if (fullText.length > 10) {
-      return {
-        fullText,
-        pages,
-        pageCount: pageCount || pages.length || 1,
-      };
+    if (pages.length === 0) {
+      pages.push({ pageNumber: 1, text: fullText });
     }
-  } catch (err) {
-    console.warn('PDFParse failed, falling back to raw extractor:', err);
-  }
 
-  return extractRawPdfTextFallback(buffer);
+    return {
+      fullText,
+      pages,
+      pageCount: pages.length,
+    };
+  } catch (err) {
+    console.error('PDF text extraction error:', err);
+    throw new Error(`Failed to extract text from PDF: ${err instanceof Error ? err.message : 'Unknown error'}`);
+  }
 }
 
 // ============================================================
@@ -228,7 +198,7 @@ export async function processDocument(
     if (cleanText.length < 5) {
       meta.status = 'error';
       meta.error = fileType === 'pdf'
-        ? 'This PDF appears to be empty or contains no readable text. Please upload a PDF with selectable text.'
+        ? 'This PDF appears to be empty or scanned without selectable text.'
         : 'This document appears to be empty.';
       saveDocumentMeta(docId, meta);
       return { docId, meta };

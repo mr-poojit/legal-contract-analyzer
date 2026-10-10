@@ -3,7 +3,6 @@
 // GET /api/documents - List all documents
 // ============================================================
 import { NextRequest, NextResponse } from 'next/server';
-import { processDocument, validateFileType } from '@/lib/documentProcessor';
 import { listDocuments, initStorage } from '@/lib/storage';
 
 export const maxDuration = 60;
@@ -23,6 +22,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Dynamic import to isolate module loading
+    const { processDocument, validateFileType } = await import('@/lib/documentProcessor');
 
     // Validate file type (supports both MIME and filename extension)
     const validation = validateFileType(file.type, file.name);
